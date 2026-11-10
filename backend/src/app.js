@@ -1,23 +1,20 @@
 
 const express = require("express");
-
 const app = express();
 
-// Middleware
+const treatmentRoutes = require("./routes/treatment.routes");
+
 app.use(express.json());
 
-// Homepage API
-app.get("/", (req, res) => {
-    res.send("Crop Disease Management Backend is Running!");
-});
+// Treatment API
+app.use("/api/treatments", treatmentRoutes);
 
-// Health check API
-app.get("/api/health", (req, res) => {
+// Health check
+app.get("/", (req, res) => {
     res.json({
         success: true,
-        message: "Member C Disease Management API is working!"
+        message: "Crop Disease Management Backend is running!"
     });
 });
 
-// Export the application
 module.exports = app;
