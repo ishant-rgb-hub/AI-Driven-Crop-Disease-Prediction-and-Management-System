@@ -4,15 +4,17 @@ const app = express();
 
 const treatmentRoutes = require("./routes/treatment.routes");
 const diseaseRoutes = require("./routes/disease.routes");
+const authRoutes = require("./routes/auth.routes");
 const errorMiddleware = require("./middleware/error.middleware");
 
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 
 // Treatment API
 app.use("/api/treatments", treatmentRoutes);
 
 // Disease API (Member B)
 app.use("/api/diseases", diseaseRoutes);
+app.use("/api/auth", authRoutes);
 
 // Health check
 app.get("/", (req, res) => {
