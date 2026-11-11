@@ -1,0 +1,19 @@
+const multer = require("multer");
+
+// eslint-disable-next-line no-unused-vars
+module.exports = (err, req, res, next) => {
+  let status = err.status || 500;
+  let message = err.message;
+
+  if (err instanceof multer.MulterError) {
+    status = 400;
+    if (err.code === "LIMIT_FILE_SIZE") message = "Image must be 5 MB or smaller";
+  }
+
+  if (status === 500) {
+    console.error(err);
+    message = "Internal server error";
+  }
+
+  res.status(status).json({ error: message });
+};
