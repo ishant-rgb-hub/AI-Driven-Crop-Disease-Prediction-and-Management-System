@@ -2,6 +2,19 @@
 
 Base URL: /api. All endpoints except diseases require a JWT: `Authorization: Bearer <token>`.
 
+## Authentication
+### POST /api/auth/register
+Required JSON fields: `name`, `email`, `password`; `phone` is optional.
+Response 201: `{ user }` with no password fields.
+
+### POST /api/auth/login
+Required JSON fields: `email`, `password`.
+Response 200: `{ token, user }`.
+Invalid credentials return `401` without revealing whether the email exists.
+
+### GET /api/auth/me
+Requires a JWT and returns the authenticated user's safe profile.
+
 ## Diseases
 ### GET /api/diseases
 Response 200: `[{ id, name, cropName, description }]`
