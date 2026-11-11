@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// TEMP STUBS: the team will replace these with the real User and Crop models.
+model User {
+  id          Int          @id @default(autoincrement())
+  name        String
+  email       String       @unique
+  password    String
+  cropImages  CropImage[]
+  predictions Prediction[]
+}
+
+model Crop {
+  id          Int          @id @default(autoincrement())
+  name        String
+  predictions Prediction[]
+}
+
+// Member B: proposed Prisma models (Disease, CropImage, Prediction)
+// To be merged into backend/prisma/schema.prisma by Member A.
+// Assumes Member A's models: User (id Int) and Crop (id Int). Adjust id types if they differ.
+
+model Disease {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique   // must match the AI model's output label, e.g. "Tomato___Late_blight"
+  cropName    String             // e.g. "Tomato"
+  displayName String             // e.g. "Late Blight"
+  description String
+  symptoms    String
+  isHealthy   Boolean  @default(false) // true for "healthy" classes
+  createdAt   DateTime @default(now())
+
+  predictions Prediction[]
+
+  // Member C will add: treatments Treatment[], preventions Prevention[]
+}
+
+model CropImage {
+  id         Int      @id @default(autoincrement())
+  url        String   // path or URL where the file is stored
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  uploadedAt DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  predictions Prediction[]
+
+  @@index([userId])
+}
+
+model Prediction {
+  id         Int      @id @default(autoincrement())
+  confidence Float    // 0.0 to 1.0
+  rawLabel   String   // label returned by the AI, kept for debugging
+  createdAt  DateTime @default(now())
+
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cropId    Int?
+  crop      Crop?     @relation(fields: [cropId], references: [id], onDelete: SetNull)
+
+  imageId   Int
+  image     CropImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  diseaseId Int
+  disease   Disease   @relation(fields: [diseaseId], references: [id])
+
+  // Member C will add: recommendations Recommendation[], feedback PredictionFeedback[]
+
+  @@index([userId, createdAt])
+}
+
+// Member A must add the back-relations:
+//   in User:  cropImages CropImage[]   predictions Prediction[]
+//   in Crop:  predictions Prediction[]

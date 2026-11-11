@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # Node.js dependencies
 node_modules/
@@ -31,3 +32,15 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.swp
+=======
+node_modules/
+**/node_modules/
+.env
+.env.*
+!.env.example
+uploads/
+dist/
+*.log
+.DS_Store
+.vscode/
+>>>>>>> cf2074e80aa43e7e4edf549891c5e7d196c827d4
