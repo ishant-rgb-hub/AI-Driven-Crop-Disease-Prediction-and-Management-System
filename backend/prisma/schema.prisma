@@ -7,14 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// TEMP STUBS: the team will replace these with the real User and Crop models.
 model User {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  password    String
-  cropImages  CropImage[]
-  predictions Prediction[]
+  id           Int          @id @default(autoincrement())
+  name         String
+  email        String       @unique
+  passwordHash String
+  phone        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  cropImages   CropImage[]
+  predictions  Prediction[]
 }
 
 model Crop {
