@@ -8,13 +8,13 @@ const errorMiddleware = require("./middleware/error.middleware");
 
 app.use(express.json());
 
-// Treatment API
+
 app.use("/api/treatments", treatmentRoutes);
 
-// Disease API (Member B)
+
 app.use("/api/diseases", diseaseRoutes);
 
-// Health check
+
 app.get("/", (req, res) => {
     res.json({
         success: true,

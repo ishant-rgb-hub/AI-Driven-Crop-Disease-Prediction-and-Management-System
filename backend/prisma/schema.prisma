@@ -38,6 +38,8 @@ model Disease {
   createdAt   DateTime @default(now())
 
   predictions Prediction[]
+  treatments  Treatment[]
+  preventions Prevention[]
 
   // Member C will add: treatments Treatment[], preventions Prevention[]
 }
@@ -77,6 +79,8 @@ model Prediction {
   disease   Disease   @relation(fields: [diseaseId], references: [id])
 
   // Member C will add: recommendations Recommendation[], feedback PredictionFeedback[]
+  recommendations Recommendation[]
+feedback       PredictionFeedback?
 
   @@index([userId, createdAt])
 }
@@ -84,3 +88,56 @@ model Prediction {
 // Member A must add the back-relations:
 //   in User:  cropImages CropImage[]   predictions Prediction[]
 //   in Crop:  predictions Prediction[]
+
+
+
+model Treatment {
+  id              Int      @id @default(autoincrement())
+  title           String
+  description     String
+  applicationMethod String
+  safetyNotes     String?
+  createdAt       DateTime @default(now())
+
+  diseaseId       Int
+  disease         Disease  @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+
+  @@index([diseaseId])
+}
+
+model Prevention {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+
+  diseaseId   Int
+  disease     Disease  @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+
+  @@index([diseaseId])
+}
+
+model Recommendation {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String
+  category     String
+  priority     String   @default("normal")
+  createdAt    DateTime @default(now())
+
+  predictionId Int
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  @@index([predictionId])
+}
+
+model PredictionFeedback {
+  id           Int      @id @default(autoincrement())
+  rating       Int
+  isCorrect    Boolean?
+  comment      String?
+  createdAt    DateTime @default(now())
+
+  predictionId Int      @unique
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+}
