@@ -1,39 +1,88 @@
 
+const { PrismaClient } = require("@prisma/client");
 
-const getTreatments = async (req, res) => {
-    try {
-        res.status(200).json({
-            success: true,
-            message: "Treatment API is working!",
-            data: []
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching treatments"
-        });
-    }
+const prisma = new PrismaClient();
+
+// Get all treatments
+const getAllTreatments = async (req, res, next) => {
+  try {
+    const treatments = await prisma.treatment.findMany({
+      include: {
+        disease: true
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      count: treatments.length,
+      data: treatments
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
+// Get treatment by ID
+const getTreatmentById = async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
 
-const getTreatmentById = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        res.status(200).json({
-            success: true,
-            message: `Treatment requested for ID ${id}`,
-            data: null
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching treatment"
-        });
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid treatment ID"
+      });
     }
+
+    const treatment = await prisma.treatment.findUnique({
+      where: { id },
+      include: { disease: true }
+    });
+
+    if (!treatment) {
+      return res.status(404).json({
+        success: false,
+        message: "Treatment not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: treatment
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get treatments by disease ID
+const getTreatmentsByDisease = async (req, res, next) => {
+  try {
+    const diseaseId = Number(req.params.diseaseId);
+
+    if (!Number.isInteger(diseaseId) || diseaseId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid disease ID"
+      });
+    }
+
+    const treatments = await prisma.treatment.findMany({
+      where: { diseaseId }
+    });
+
+    res.status(200).json({
+      success: true,
+      count: treatments.length,
+      data: treatments
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
-    getTreatments,
-    getTreatmentById
+  getAllTreatments,
+  getTreatmentById,
+  getTreatmentsByDisease
 };
