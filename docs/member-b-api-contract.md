@@ -1,5 +1,38 @@
 # Member B API Contract: AI Disease Prediction
 
+## Authentication and User APIs
+
+Authentication endpoints use JSON request bodies. Successful responses never include
+`password` or `passwordHash`.
+
+- `POST /api/auth/register` creates a user and returns a safe profile with HTTP 201.
+- `POST /api/auth/login` verifies credentials and returns a one-hour JWT.
+- `GET /api/auth/me` returns the authenticated user's safe profile.
+- `GET /api/users/profile` returns the authenticated user's safe profile.
+- `PUT /api/users/profile` updates only `name` and `phone`.
+
+Protected endpoints require:
+
+```text
+Authorization: Bearer <JWT>
+```
+
+The JWT secret is configured with `JWT_SECRET`; it must not be committed.
+
+## Farm APIs
+
+All farm endpoints require authentication and scope records to the authenticated user:
+
+- `POST /api/farms`
+- `GET /api/farms`
+- `GET /api/farms/:id`
+- `PUT /api/farms/:id`
+- `DELETE /api/farms/:id`
+
+Farm creation requires `farmName`, `location`, `totalArea`, `soilType`, and
+`irrigationType`. The server derives `userId` from the JWT rather than accepting it
+from the request body.
+
 Base URL: /api. All endpoints except diseases require a JWT: `Authorization: Bearer <token>`.
 
 ## Diseases
