@@ -1,7 +1,5 @@
 
-const { PrismaClient } = require("@prisma/client");
-
-const prisma = new PrismaClient();
+const prisma = require("../config/database");
 
 // Get all treatments
 const getAllTreatments = async (req, res, next) => {

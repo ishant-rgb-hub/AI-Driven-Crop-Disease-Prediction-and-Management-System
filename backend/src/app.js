@@ -1,9 +1,14 @@
 
+require("dotenv").config();
+
 const express = require("express");
 const app = express();
 
 const treatmentRoutes = require("./routes/treatment.routes");
 const diseaseRoutes = require("./routes/disease.routes");
+const authRoutes = require("./routes/auth.routes");
+const profileRoutes = require("./routes/profile.routes");
+const farmRoutes = require("./routes/farm.routes");
 const errorMiddleware = require("./middleware/error.middleware");
 
 app.use(express.json());
@@ -13,6 +18,9 @@ app.use("/api/treatments", treatmentRoutes);
 
 
 app.use("/api/diseases", diseaseRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", profileRoutes);
+app.use("/api/farms", farmRoutes);
 
 
 app.get("/", (req, res) => {
