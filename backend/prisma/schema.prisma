@@ -44,11 +44,26 @@ model Farm {
   irrigationType String
   userId        Int
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fields         Field[]
   crops         Crop[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
+}
+
+model Field {
+  id             Int      @id @default(autoincrement())
+  fieldName      String
+  area           Float
+  soilType       String?
+  irrigationType String?
+  farmId         Int
+  farm           Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([farmId])
 }
 
 // Member B: proposed Prisma models (Disease, CropImage, Prediction)

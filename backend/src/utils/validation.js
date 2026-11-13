@@ -114,6 +114,40 @@ function validateCropFields(body, { partial = false } = {}) {
   return null;
 }
 
+function validateFieldFields(body, { partial = false } = {}) {
+  if (!isPlainObject(body)) return "Request body must be an object";
+
+  const allowedFields = new Set(["fieldName", "area", "soilType", "irrigationType"]);
+  if (Object.keys(body).some((field) => !allowedFields.has(field))) {
+    return "Request body contains unsupported field properties";
+  }
+
+  if (!partial || body.fieldName !== undefined) {
+    if (typeof body.fieldName !== "string" || body.fieldName.trim().length < 2 || body.fieldName.trim().length > 100) {
+      return "Field name must be between 2 and 100 characters";
+    }
+  }
+
+  if (!partial || body.area !== undefined) {
+    const area = typeof body.area === "string" ? Number(body.area) : body.area;
+    if (typeof area !== "number" || !Number.isFinite(area) || area <= 0) {
+      return "Field area must be a positive number";
+    }
+  }
+
+  for (const [field, label] of [
+    ["soilType", "Soil type"],
+    ["irrigationType", "Irrigation type"],
+  ]) {
+    if (body[field] === undefined || body[field] === null) continue;
+    if (typeof body[field] !== "string" || body[field].trim().length < 2 || body[field].trim().length > 100) {
+      return `${label} must be between 2 and 100 characters`;
+    }
+  }
+
+  return null;
+}
+
 function safeUser(user) {
   if (!user) return null;
   const { id, name, email, phone, createdAt, updatedAt } = user;
@@ -125,6 +159,7 @@ module.exports = {
   normalizeEmail,
   safeUser,
   validateCropFields,
+  validateFieldFields,
   validateFarmFields,
   validateUserFields,
 };

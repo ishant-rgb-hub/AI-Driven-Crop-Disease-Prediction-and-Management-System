@@ -282,6 +282,22 @@ authenticated user; `farmId` is taken from the nested route, not the request bod
 Creation requires `cropName`; `cropVariety`, `plantingDate`, `expectedHarvestDate`,
 and `growthStage` are optional. Date values use `YYYY-MM-DD`.
 
+### Field APIs
+
+All field endpoints require authentication. Field operations are limited to farms
+owned by the authenticated user; `farmId` is taken from the nested route.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/farms/:farmId/fields` | Create a field under an owned farm |
+| GET | `/api/farms/:farmId/fields` | List fields under an owned farm |
+| GET | `/api/fields/:id` | Get an owned field |
+| PUT | `/api/fields/:id` | Update an owned field |
+| DELETE | `/api/fields/:id` | Delete an owned field |
+
+Creation requires `fieldName` and a positive `area`; `soilType` and `irrigationType`
+are optional.
+
 ### Treatment APIs
 
 | Method | Endpoint | Description |
