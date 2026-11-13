@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test test/api.test.js",
+    "test": "node --test test/*.test.js",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"
   },
