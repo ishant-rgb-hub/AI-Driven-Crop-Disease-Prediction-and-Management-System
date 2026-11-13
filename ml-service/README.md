@@ -16,6 +16,10 @@ ml-service/labels/class_indices.json
 {"0": "Tomato___Early_blight"}
 ```
 
+The model must accept 224x224 RGB images with values normalized to 0-1. These
+settings must match the training pipeline; change `IMAGE_SIZE` and preprocessing
+in `predictor.py` if the trained model uses different requirements.
+
 Run it with:
 
 ```bash
