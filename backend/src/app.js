@@ -9,6 +9,7 @@ const diseaseRoutes = require("./routes/disease.routes");
 const authRoutes = require("./routes/auth.routes");
 const profileRoutes = require("./routes/profile.routes");
 const farmRoutes = require("./routes/farm.routes");
+const cropRoutes = require("./routes/crop.routes");
 const errorMiddleware = require("./middleware/error.middleware");
 
 app.use(express.json());
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", profileRoutes);
 app.use("/api/farms", farmRoutes);
 
+app.use("/api/crops", cropRoutes);
 
 app.get("/", (req, res) => {
     res.json({

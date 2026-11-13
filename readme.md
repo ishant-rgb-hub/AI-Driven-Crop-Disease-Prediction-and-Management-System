@@ -266,6 +266,22 @@ Server running at http://localhost:3000
 
 The following are the planned REST API endpoints. Actual endpoint availability depends on implementation.
 
+### Crop APIs
+
+All crop endpoints require authentication. Crops are scoped to a farm owned by the
+authenticated user; `farmId` is taken from the nested route, not the request body.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/farms/:farmId/crops` | Create a crop under an owned farm |
+| GET | `/api/farms/:farmId/crops` | List crops under an owned farm |
+| GET | `/api/crops/:id` | Get an owned crop |
+| PUT | `/api/crops/:id` | Update an owned crop |
+| DELETE | `/api/crops/:id` | Delete an owned crop |
+
+Creation requires `cropName`; `cropVariety`, `plantingDate`, `expectedHarvestDate`,
+and `growthStage` are optional. Date values use `YYYY-MM-DD`.
+
 ### Treatment APIs
 
 | Method | Endpoint | Description |

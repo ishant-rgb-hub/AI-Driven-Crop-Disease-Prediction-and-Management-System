@@ -67,6 +67,53 @@ function validateFarmFields(body, { partial = false } = {}) {
   return null;
 }
 
+function validateCropFields(body, { partial = false } = {}) {
+  if (!isPlainObject(body)) return "Request body must be an object";
+
+  const allowedFields = new Set([
+    "cropName",
+    "cropVariety",
+    "plantingDate",
+    "expectedHarvestDate",
+    "growthStage",
+  ]);
+  if (Object.keys(body).some((field) => !allowedFields.has(field))) {
+    return "Request body contains unsupported crop fields";
+  }
+
+  if (!partial || body.cropName !== undefined) {
+    if (typeof body.cropName !== "string" || body.cropName.trim().length < 2 || body.cropName.trim().length > 100) {
+      return "Crop name must be between 2 and 100 characters";
+    }
+  }
+
+  for (const [field, label, maxLength] of [
+    ["cropVariety", "Crop variety", 100],
+    ["growthStage", "Growth stage", 50],
+  ]) {
+    if (body[field] === undefined || body[field] === null) continue;
+    if (typeof body[field] !== "string" || body[field].trim().length < 1 || body[field].trim().length > maxLength) {
+      return `${label} must be between 1 and ${maxLength} characters`;
+    }
+  }
+
+  for (const [field, label] of [
+    ["plantingDate", "Planting date"],
+    ["expectedHarvestDate", "Expected harvest date"],
+  ]) {
+    if (body[field] === undefined || body[field] === null) continue;
+    if (typeof body[field] !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(body[field])) {
+      return `${label} must be a valid date in YYYY-MM-DD format`;
+    }
+    const date = new Date(`${body[field]}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== body[field]) {
+      return `${label} must be a valid date in YYYY-MM-DD format`;
+    }
+  }
+
+  return null;
+}
+
 function safeUser(user) {
   if (!user) return null;
   const { id, name, email, phone, createdAt, updatedAt } = user;
@@ -77,6 +124,7 @@ module.exports = {
   isPlainObject,
   normalizeEmail,
   safeUser,
+  validateCropFields,
   validateFarmFields,
   validateUserFields,
 };
