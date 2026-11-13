@@ -85,9 +85,17 @@ Response 200: single prediction using the POST response shape.
 Response 400 for a non-integer id. Response 404 `{ "error": "Prediction not found" }` if it does not exist or belongs to another user.
 
 ## AI service (internal)
-The current predictor is a deterministic mock; it is not a trained ML model.
-It returns `{ "label": "Tomato___Late_blight", "confidence": 0.93 }` from the saved image bytes.
+The Node AI service calls the optional Python ML service at `ML_SERVICE_URL/predict`
+with the saved image. The Python service returns
+`{ "label": "Tomato___Late_blight", "confidence": 0.93 }`.
 `label` must match `Disease.name` in the database seed.
+
+The repository does not include a model binary. The Python service requires a
+verified model and label map under `ml-service/models/` and `ml-service/labels/`;
+see [ml-service/README.md](../ml-service/README.md). Until those files are
+installed, development uses the deterministic mock predictor when the ML service
+is not reachable. Set `ML_MOCK_FALLBACK=false` to disable that behavior; fallback
+is disabled in production.
 
 ## Models owned by Member B
 Disease, CropImage, Prediction (schema changes go through Member A).
