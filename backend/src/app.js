@@ -3,7 +3,13 @@ require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
+const cors = require("cors");
 const app = express();
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const treatmentRoutes = require("./routes/treatment.routes");
 const diseaseRoutes = require("./routes/disease.routes");
@@ -15,6 +21,9 @@ const farmRoutes = require("./routes/farm.routes");
 const errorMiddleware = require("./middleware/error.middleware");
 
 app.use(express.json());
+app.use(cors({
+  origin: allowedOrigins,
+}));
 
 
 app.use("/api/treatments", treatmentRoutes);
