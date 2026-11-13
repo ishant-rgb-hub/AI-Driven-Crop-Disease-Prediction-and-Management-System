@@ -418,3 +418,48 @@ A formal open-source license can be added when selected by the project team.
 ---
 
 **Built with 🌱 for smarter and more sustainable agriculture.**
+
+## Member B: AI prediction module
+
+Member B owns the disease catalogue, protected image upload, prediction
+workflow, prediction history, and the Node-to-Python ML service boundary.
+
+### Backend prediction setup
+
+```bash
+cd backend
+npm install
+npx prisma generate
+npm test
+```
+
+Configure these values in `backend/.env`:
+
+```env
+ML_SERVICE_URL="http://127.0.0.1:8000"
+ML_MOCK_FALLBACK="true"
+```
+
+The Node API sends saved images to the Python service at
+`POST /predict`. Development fallback is deterministic and is not a real
+trained model. It is disabled in production. The Python service requires a
+verified, licensed model and label map; see
+[`ml-service/README.md`](ml-service/README.md).
+
+### Member B API verification
+
+Import [`docs/postman/member-b-api.postman_collection.json`](docs/postman/member-b-api.postman_collection.json)
+into Postman. Run Login first so the collection stores the JWT in its
+`token` variable, then run Create prediction with a JPG or PNG image no larger
+than 5 MB. The collection covers authentication, disease details, image upload,
+predictions, and profile requests.
+
+The current automated backend baseline is:
+
+```text
+14 tests passed
+```
+
+Real-model verification remains pending until
+`ml-service/models/crop_disease_model.keras` and
+`ml-service/labels/class_indices.json` are supplied and validated.

@@ -1,0 +1,169 @@
+{
+  "info": {
+    "_postman_id": "4d4a0f1b-6e77-4b6a-9c2a-0c1b-api-member-b",
+    "name": "Leafwise - Member B APIs",
+    "description": "Authentication, disease, image upload, and prediction requests for the Member B module.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "diseaseId", "value": "1" },
+    { "key": "predictionId", "value": "1" },
+    { "key": "imagePath", "value": "/absolute/path/to/leaf.png" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Postman Farmer\",\"email\":\"postman@example.com\",\"password\":\"TestPass@123\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"postman@example.com\",\"password\":\"TestPass@123\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Current user",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Diseases",
+      "item": [
+        {
+          "name": "List diseases",
+          "request": { "method": "GET", "url": "{{baseUrl}}/diseases" }
+        },
+        {
+          "name": "Get disease details",
+          "request": { "method": "GET", "url": "{{baseUrl}}/diseases/{{diseaseId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Images and predictions",
+      "item": [
+        {
+          "name": "Upload image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": "{{imagePath}}" }
+              ]
+            },
+            "url": "{{baseUrl}}/images"
+          }
+        },
+        {
+          "name": "Create prediction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('predictionId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": "{{imagePath}}" }
+              ]
+            },
+            "url": "{{baseUrl}}/predictions"
+          }
+        },
+        {
+          "name": "List my predictions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/predictions"
+          }
+        },
+        {
+          "name": "Get prediction details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/predictions/{{predictionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/users/profile"
+          }
+        },
+        {
+          "name": "Update profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Updated Farmer\",\"phone\":\"+15555550123\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/users/profile"
+          }
+        }
+      ]
+    }
+  ]
+}

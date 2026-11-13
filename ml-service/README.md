@@ -35,3 +35,32 @@ the Node service falls back to its deterministic mock only when the ML service
 cannot be reached. Set `ML_MOCK_FALLBACK=false` to disable that fallback; it is
 always disabled in production. Invalid model responses and inference failures are
 returned as errors rather than converted into fake predictions.
+
+## Verification
+
+Check model readiness after starting the service:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+With the required model and label map installed, the response includes
+`"model_ready": true`. Without them, the service remains intentionally
+not-ready and `/predict` returns a service-unavailable error; the Node backend
+may use its development-only deterministic fallback when enabled.
+
+Test a real image prediction:
+
+```bash
+curl -X POST http://127.0.0.1:8000/predict \
+  -F "image=@/absolute/path/to/leaf.png"
+```
+
+The successful response is:
+
+```json
+{"label":"Tomato___Early_blight","confidence":0.93}
+```
+
+The repository does not ship a trained model. Do not copy a model into Git or
+describe mock fallback results as real ML inference.
