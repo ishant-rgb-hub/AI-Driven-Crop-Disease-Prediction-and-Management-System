@@ -131,6 +131,9 @@ test("logs in successfully and rejects incorrect credentials generically", async
   assert.equal(success.status, 200);
   assert.ok(success.body.token);
   assert.equal(success.body.user.passwordHash, undefined);
+  const authenticated = await request(global.testServer, "/api/auth/me", { token: success.body.token });
+  assert.equal(authenticated.status, 200);
+  assert.equal(authenticated.body.user.id, user.id);
 
   const failure = await request(global.testServer, "/api/auth/login", {
     method: "POST", body: { email: user.email, password: "wrong-password" },
@@ -155,6 +158,46 @@ test("protects current-user and profile endpoints", async () => {
   assert.equal(updated.status, 400);
 });
 
+test("retrieves and updates only safe profile fields", async () => {
+  const token = createToken(user.id);
+  let updateData;
+  prisma.user.update = async ({ data }) => {
+    updateData = data;
+    return { ...user, ...data };
+  };
+
+  const unauthorizedGet = await request(global.testServer, "/api/users/profile");
+  assert.equal(unauthorizedGet.status, 401);
+  const unauthorizedUpdate = await request(global.testServer, "/api/users/profile", {
+    method: "PUT", body: { name: "Updated User" },
+  });
+  assert.equal(unauthorizedUpdate.status, 401);
+
+  const profile = await request(global.testServer, "/api/users/profile", { token });
+  assert.equal(profile.status, 200);
+  assert.equal(profile.body.user.email, user.email);
+  assert.equal(profile.body.user.passwordHash, undefined);
+
+  const updated = await request(global.testServer, "/api/users/profile", {
+    method: "PUT", token, body: { name: "Updated User", phone: "+1 555 123 4567" },
+  });
+  assert.equal(updated.status, 200);
+  assert.deepEqual(updateData, { name: "Updated User", phone: "+1 555 123 4567" });
+  assert.equal(updated.body.user.passwordHash, undefined);
+
+  for (const body of [
+    { name: "X" },
+    { phone: "invalid" },
+    { passwordHash: "attacker-controlled" },
+    {},
+  ]) {
+    const invalid = await request(global.testServer, "/api/users/profile", {
+      method: "PUT", token, body,
+    });
+    assert.equal(invalid.status, 400);
+  }
+});
+
 test("rejects invalid and expired JWTs", async () => {
   const invalid = await request(global.testServer, "/api/auth/me", { token: "not-a-token" });
   assert.equal(invalid.status, 401);
@@ -168,7 +211,7 @@ test("rejects invalid and expired JWTs", async () => {
 
 test("creates, lists, updates, and deletes only owned farms", async () => {
   const token = createToken(user.id);
-  prisma.farm.findFirst = async ({ where }) => where.userId === user.id ? {
+  prisma.farm.findFirst = async ({ where }) => where.userId === user.id && where.id === 10 ? {
     id: where.id, userId: user.id, farmName: "Green Farm", location: "Pune",
     totalArea: 4, soilType: "Loam", irrigationType: "Drip",
   } : null;
@@ -186,18 +229,31 @@ test("creates, lists, updates, and deletes only owned farms", async () => {
   assert.equal(created.status, 201);
   assert.equal(created.body.farm.userId, user.id);
 
+  const unauthorized = await request(global.testServer, "/api/farms");
+  assert.equal(unauthorized.status, 401);
+
   const listed = await request(global.testServer, "/api/farms", { token });
   assert.equal(listed.status, 200);
   assert.equal(listed.body.farms[0].userId, user.id);
 
+  const invalidId = await request(global.testServer, "/api/farms/not-an-id", { token });
+  assert.equal(invalidId.status, 400);
   const fetched = await request(global.testServer, "/api/farms/10", { token });
   assert.equal(fetched.status, 200);
+  const missing = await request(global.testServer, "/api/farms/11", { token });
+  assert.equal(missing.status, 404);
   const updated = await request(global.testServer, "/api/farms/10", {
     method: "PUT", token, body: { soilType: "Sandy" },
   });
   assert.equal(updated.status, 200);
+  const missingUpdate = await request(global.testServer, "/api/farms/11", {
+    method: "PUT", token, body: { soilType: "Sandy" },
+  });
+  assert.equal(missingUpdate.status, 404);
   const deleted = await request(global.testServer, "/api/farms/10", { method: "DELETE", token });
   assert.equal(deleted.status, 204);
+  const missingDelete = await request(global.testServer, "/api/farms/11", { method: "DELETE", token });
+  assert.equal(missingDelete.status, 404);
 });
 
 test("does not expose another user's farms", async () => {
@@ -205,6 +261,50 @@ test("does not expose another user's farms", async () => {
   prisma.farm.findFirst = async () => null;
   const response = await request(global.testServer, "/api/farms/999", { token });
   assert.equal(response.status, 404);
+});
+
+test("returns a generic error when a farm database request fails", async () => {
+  const token = createToken(user.id);
+  prisma.farm.findMany = async () => {
+    throw new Error("sensitive database connection detail");
+  };
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    const response = await request(global.testServer, "/api/farms", { token });
+    assert.equal(response.status, 500);
+    assert.deepEqual(response.body, { error: "Internal server error" });
+    assert.equal(JSON.stringify(response.body).includes("sensitive database"), false);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
+test("returns 404 when an owned farm disappears during update or deletion", async () => {
+  const token = createToken(user.id);
+  prisma.farm.findFirst = async () => ({ id: 10 });
+  prisma.farm.update = async () => {
+    const error = new Error("Farm no longer exists");
+    error.code = "P2025";
+    throw error;
+  };
+  prisma.farm.delete = async () => {
+    const error = new Error("Farm no longer exists");
+    error.code = "P2025";
+    throw error;
+  };
+
+  const updated = await request(global.testServer, "/api/farms/10", {
+    method: "PUT", token, body: { soilType: "Sandy" },
+  });
+  assert.equal(updated.status, 404);
+  assert.deepEqual(updated.body, { success: false, error: "Farm not found" });
+
+  const deleted = await request(global.testServer, "/api/farms/10", {
+    method: "DELETE", token,
+  });
+  assert.equal(deleted.status, 404);
+  assert.deepEqual(deleted.body, { success: false, error: "Farm not found" });
 });
 
 test("creates and lists crops only under an owned farm", async () => {
@@ -241,6 +341,10 @@ test("creates and lists crops only under an owned farm", async () => {
 
   const missingFarm = await request(global.testServer, "/api/farms/21/crops", { token });
   assert.equal(missingFarm.status, 404);
+  const invalidFarmId = await request(global.testServer, "/api/farms/not-an-id/crops", { token });
+  assert.equal(invalidFarmId.status, 400);
+  const missingFarmList = await request(global.testServer, "/api/farms/21/crops", { token });
+  assert.equal(missingFarmList.status, 404);
 
   const created = await request(global.testServer, "/api/farms/20/crops", {
     method: "POST",
@@ -301,6 +405,8 @@ test("gets, updates, and deletes only crops owned through the farm", async () =>
   const fetched = await request(global.testServer, "/api/crops/30", { token });
   assert.equal(fetched.status, 200);
   assert.equal(fetched.body.crop.id, 30);
+  const missing = await request(global.testServer, "/api/crops/31", { token });
+  assert.equal(missing.status, 404);
 
   const invalidUpdate = await request(global.testServer, "/api/crops/30", {
     method: "PUT", token, body: {},
@@ -346,6 +452,8 @@ test("creates and lists fields only under an owned farm", async () => {
 
   const unauthorized = await request(global.testServer, "/api/farms/20/fields");
   assert.equal(unauthorized.status, 401);
+  const invalidFarmId = await request(global.testServer, "/api/farms/invalid/fields", { token });
+  assert.equal(invalidFarmId.status, 400);
 
   const invalidArea = await request(global.testServer, "/api/farms/20/fields", {
     method: "POST", token, body: { fieldName: "North Field", area: -1 },
@@ -405,6 +513,8 @@ test("gets, updates, and deletes only fields owned through the farm", async () =
   const fetched = await request(global.testServer, "/api/fields/40", { token });
   assert.equal(fetched.status, 200);
   assert.equal(fetched.body.field.fieldName, "North Field");
+  const missing = await request(global.testServer, "/api/fields/41", { token });
+  assert.equal(missing.status, 404);
 
   const invalidUpdate = await request(global.testServer, "/api/fields/40", {
     method: "PUT", token, body: {},

@@ -81,6 +81,7 @@ async function updateFarm(req, res, next) {
     const farm = await prisma.farm.update({ where: { id }, data: farmData(req.body), select: farmSelect });
     return res.json({ success: true, farm });
   } catch (error) {
+    if (error.code === "P2025") return res.status(404).json({ success: false, error: "Farm not found" });
     return next(error);
   }
 }
@@ -94,6 +95,7 @@ async function deleteFarm(req, res, next) {
     await prisma.farm.delete({ where: { id } });
     return res.status(204).send();
   } catch (error) {
+    if (error.code === "P2025") return res.status(404).json({ success: false, error: "Farm not found" });
     return next(error);
   }
 }
