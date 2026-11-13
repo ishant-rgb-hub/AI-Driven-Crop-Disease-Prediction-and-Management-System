@@ -78,6 +78,20 @@ beforeEach(() => {
     update: async ({ data }) => ({ id: 10, ...data }),
     delete: async () => undefined,
   };
+  prisma.crop = {
+    create: async ({ data }) => ({ id: 30, createdAt: new Date(), updatedAt: new Date(), ...data }),
+    findMany: async () => [],
+    findFirst: async () => null,
+    update: async ({ data }) => ({ id: 30, ...data }),
+    delete: async () => undefined,
+  };
+  prisma.field = {
+    create: async ({ data }) => ({ id: 40, createdAt: new Date(), updatedAt: new Date(), ...data }),
+    findMany: async () => [],
+    findFirst: async () => null,
+    update: async ({ data }) => ({ id: 40, ...data }),
+    delete: async () => undefined,
+  };
 });
 
 test("registers a user with a bcrypt hash and safe response", async () => {
@@ -191,4 +205,231 @@ test("does not expose another user's farms", async () => {
   prisma.farm.findFirst = async () => null;
   const response = await request(global.testServer, "/api/farms/999", { token });
   assert.equal(response.status, 404);
+});
+
+test("creates and lists crops only under an owned farm", async () => {
+  const token = createToken(user.id);
+  let createdData;
+  let listWhere;
+  prisma.farm.findFirst = async ({ where }) => where.id === 20 && where.userId === user.id ? { id: 20 } : null;
+  prisma.crop.create = async ({ data }) => {
+    createdData = data;
+    return { id: 30, createdAt: new Date(), updatedAt: new Date(), ...data };
+  };
+  prisma.crop.findMany = async ({ where }) => {
+    listWhere = where;
+    return [{ id: 30, cropName: "Tomato", farmId: 20 }];
+  };
+
+  const unauthorized = await request(global.testServer, "/api/farms/20/crops");
+  assert.equal(unauthorized.status, 401);
+
+  const invalid = await request(global.testServer, "/api/farms/20/crops", {
+    method: "POST", token, body: { cropName: "T" },
+  });
+  assert.equal(invalid.status, 400);
+
+  const invalidDate = await request(global.testServer, "/api/farms/20/crops", {
+    method: "POST", token, body: { cropName: "Tomato", plantingDate: "2026-02-31" },
+  });
+  assert.equal(invalidDate.status, 400);
+
+  const otherFarm = await request(global.testServer, "/api/farms/21/crops", {
+    method: "POST", token, body: { cropName: "Tomato" },
+  });
+  assert.equal(otherFarm.status, 404);
+
+  const missingFarm = await request(global.testServer, "/api/farms/21/crops", { token });
+  assert.equal(missingFarm.status, 404);
+
+  const created = await request(global.testServer, "/api/farms/20/crops", {
+    method: "POST",
+    token,
+    body: {
+      cropName: " Tomato ",
+      cropVariety: " Roma ",
+      plantingDate: "2026-03-01",
+      expectedHarvestDate: "2026-07-01",
+      growthStage: "Flowering",
+      farmId: 21,
+    },
+  });
+  assert.equal(created.status, 400);
+
+  const valid = await request(global.testServer, "/api/farms/20/crops", {
+    method: "POST",
+    token,
+    body: {
+      cropName: " Tomato ",
+      cropVariety: " Roma ",
+      plantingDate: "2026-03-01",
+      expectedHarvestDate: "2026-07-01",
+      growthStage: "Flowering",
+    },
+  });
+  assert.equal(valid.status, 201);
+  assert.equal(valid.body.crop.cropName, "Tomato");
+  assert.equal(createdData.farmId, 20);
+  assert.equal(createdData.plantingDate.toISOString(), "2026-03-01T00:00:00.000Z");
+
+  const listed = await request(global.testServer, "/api/farms/20/crops", { token });
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.crops[0].farmId, 20);
+  assert.deepEqual(listWhere, { farmId: 20 });
+});
+
+test("gets, updates, and deletes only crops owned through the farm", async () => {
+  const token = createToken(user.id);
+  let updateData;
+  let deleteCount = 0;
+  const ownedCrop = { id: 30, cropName: "Tomato", farmId: 20 };
+  prisma.crop.findFirst = async ({ where }) => (
+    where.id === 30 && where.farm?.is?.userId === user.id ? ownedCrop : null
+  );
+  prisma.crop.update = async ({ data }) => {
+    updateData = data;
+    return { ...ownedCrop, ...data };
+  };
+  prisma.crop.delete = async () => { deleteCount += 1; };
+
+  const unauthorized = await request(global.testServer, "/api/crops/30");
+  assert.equal(unauthorized.status, 401);
+
+  const invalidId = await request(global.testServer, "/api/crops/not-an-id", { token });
+  assert.equal(invalidId.status, 400);
+
+  const fetched = await request(global.testServer, "/api/crops/30", { token });
+  assert.equal(fetched.status, 200);
+  assert.equal(fetched.body.crop.id, 30);
+
+  const invalidUpdate = await request(global.testServer, "/api/crops/30", {
+    method: "PUT", token, body: {},
+  });
+  assert.equal(invalidUpdate.status, 400);
+
+  const updated = await request(global.testServer, "/api/crops/30", {
+    method: "PUT", token, body: { growthStage: "Mature" },
+  });
+  assert.equal(updated.status, 200);
+  assert.equal(updateData.growthStage, "Mature");
+
+  const inaccessible = await request(global.testServer, "/api/crops/31", {
+    method: "PUT", token, body: { cropName: "Wheat" },
+  });
+  assert.equal(inaccessible.status, 404);
+  const inaccessibleDelete = await request(global.testServer, "/api/crops/31", {
+    method: "DELETE", token,
+  });
+  assert.equal(inaccessibleDelete.status, 404);
+  assert.equal(deleteCount, 0);
+
+  const deleted = await request(global.testServer, "/api/crops/30", {
+    method: "DELETE", token,
+  });
+  assert.equal(deleted.status, 204);
+  assert.equal(deleteCount, 1);
+});
+
+test("creates and lists fields only under an owned farm", async () => {
+  const token = createToken(user.id);
+  let createdData;
+  let listWhere;
+  prisma.farm.findFirst = async ({ where }) => where.id === 20 && where.userId === user.id ? { id: 20 } : null;
+  prisma.field.create = async ({ data }) => {
+    createdData = data;
+    return { id: 40, createdAt: new Date(), updatedAt: new Date(), ...data };
+  };
+  prisma.field.findMany = async ({ where }) => {
+    listWhere = where;
+    return [{ id: 40, fieldName: "North Field", area: 2.5, farmId: 20 }];
+  };
+
+  const unauthorized = await request(global.testServer, "/api/farms/20/fields");
+  assert.equal(unauthorized.status, 401);
+
+  const invalidArea = await request(global.testServer, "/api/farms/20/fields", {
+    method: "POST", token, body: { fieldName: "North Field", area: -1 },
+  });
+  assert.equal(invalidArea.status, 400);
+
+  const invalidBody = await request(global.testServer, "/api/farms/20/fields", {
+    method: "POST", token, body: { fieldName: "North Field", area: 2.5, farmId: 21 },
+  });
+  assert.equal(invalidBody.status, 400);
+
+  const otherFarm = await request(global.testServer, "/api/farms/21/fields", {
+    method: "POST", token, body: { fieldName: "North Field", area: 2.5 },
+  });
+  assert.equal(otherFarm.status, 404);
+
+  const missingFarm = await request(global.testServer, "/api/farms/21/fields", { token });
+  assert.equal(missingFarm.status, 404);
+
+  const created = await request(global.testServer, "/api/farms/20/fields", {
+    method: "POST",
+    token,
+    body: { fieldName: " North Field ", area: "2.5", soilType: " Loam ", irrigationType: " Drip " },
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.field.fieldName, "North Field");
+  assert.equal(createdData.area, 2.5);
+  assert.equal(createdData.farmId, 20);
+  assert.equal(createdData.soilType, "Loam");
+
+  const listed = await request(global.testServer, "/api/farms/20/fields", { token });
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.fields[0].farmId, 20);
+  assert.deepEqual(listWhere, { farmId: 20 });
+});
+
+test("gets, updates, and deletes only fields owned through the farm", async () => {
+  const token = createToken(user.id);
+  let updateData;
+  let deleteCount = 0;
+  const ownedField = { id: 40, fieldName: "North Field", area: 2.5, farmId: 20 };
+  prisma.field.findFirst = async ({ where }) => (
+    where.id === 40 && where.farm?.is?.userId === user.id ? ownedField : null
+  );
+  prisma.field.update = async ({ data }) => {
+    updateData = data;
+    return { ...ownedField, ...data };
+  };
+  prisma.field.delete = async () => { deleteCount += 1; };
+
+  const unauthorized = await request(global.testServer, "/api/fields/40");
+  assert.equal(unauthorized.status, 401);
+
+  const invalidId = await request(global.testServer, "/api/fields/invalid", { token });
+  assert.equal(invalidId.status, 400);
+
+  const fetched = await request(global.testServer, "/api/fields/40", { token });
+  assert.equal(fetched.status, 200);
+  assert.equal(fetched.body.field.fieldName, "North Field");
+
+  const invalidUpdate = await request(global.testServer, "/api/fields/40", {
+    method: "PUT", token, body: {},
+  });
+  assert.equal(invalidUpdate.status, 400);
+
+  const updated = await request(global.testServer, "/api/fields/40", {
+    method: "PUT", token, body: { area: 3 },
+  });
+  assert.equal(updated.status, 200);
+  assert.equal(updateData.area, 3);
+
+  const inaccessible = await request(global.testServer, "/api/fields/41", {
+    method: "PUT", token, body: { fieldName: "South Field" },
+  });
+  assert.equal(inaccessible.status, 404);
+  const inaccessibleDelete = await request(global.testServer, "/api/fields/41", {
+    method: "DELETE", token,
+  });
+  assert.equal(inaccessibleDelete.status, 404);
+  assert.equal(deleteCount, 0);
+
+  const deleted = await request(global.testServer, "/api/fields/40", {
+    method: "DELETE", token,
+  });
+  assert.equal(deleted.status, 204);
+  assert.equal(deleteCount, 1);
 });
