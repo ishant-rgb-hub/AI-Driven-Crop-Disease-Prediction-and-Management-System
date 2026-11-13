@@ -20,9 +20,19 @@ model User {
 }
 
 model Crop {
-  id          Int          @id @default(autoincrement())
-  name        String
-  predictions Prediction[]
+  id                 Int          @id @default(autoincrement())
+  cropName           String       @map("name")
+  cropVariety        String?
+  plantingDate       DateTime?
+  expectedHarvestDate DateTime?
+  growthStage        String?
+  farmId             Int
+  farm               Farm         @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  predictions        Prediction[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([farmId])
 }
 
 model Farm {
@@ -34,6 +44,7 @@ model Farm {
   irrigationType String
   userId        Int
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crops         Crop[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
