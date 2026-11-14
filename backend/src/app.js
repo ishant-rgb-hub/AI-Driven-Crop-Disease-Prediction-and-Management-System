@@ -17,6 +17,7 @@ const predictionRoutes = require("./routes/prediction.routes");
 const authRoutes = require("./routes/auth.routes");
 const profileRoutes = require("./routes/profile.routes");
 const farmRoutes = require("./routes/farm.routes");
+const preventionRoutes = require("./routes/prevention.routes");
 
 const recommendationRoutes =
   require("./routes/recommendation.routes");
@@ -41,8 +42,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", profileRoutes);
 app.use("/api/farms", farmRoutes);
-
-
+app.use("/api/preventions", preventionRoutes);
 app.get("/", (req, res) => {
     res.json({
         success: true,
