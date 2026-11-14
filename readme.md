@@ -65,8 +65,8 @@ The platform combines modern web technologies, database management, and AI-based
 
 | Technology | Purpose |
 |---|---|
-| HTML, CSS, JavaScript | Frontend fundamentals |
-| Frontend framework | To be confirmed from existing frontend |
+| React, Vite, React Router | Farmer-facing frontend |
+| CSS | Responsive Leafwise design system |
 | Node.js | Backend runtime |
 | Express.js | REST API development |
 | PostgreSQL | Relational database |
@@ -260,11 +260,46 @@ Expected output:
 Server running at http://localhost:3000
 ```
 
+### Step 8: Start the frontend
+
+In another terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the Vite URL printed in the terminal. The development server proxies `/api`
+requests to `http://localhost:3000`. To use another API origin, set
+`VITE_API_BASE_URL` in the frontend environment.
+
+The farmer-facing frontend currently includes the landing page, registration,
+sign-in, protected dashboard, and profile editing. Dashboard scan and disease
+health metrics remain unavailable until prediction-history and analytics APIs
+are exposed by the backend.
+
 ---
 
 ## 🔗 API Documentation
 
-The following are the planned REST API endpoints. Actual endpoint availability depends on implementation.
+The frontend currently consumes the following implemented REST API endpoints:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/register` | Register a farmer |
+| POST | `/api/auth/login` | Sign in and receive a bearer token |
+| GET | `/api/auth/me` | Validate the current session |
+| GET | `/api/users/profile` | Read the authenticated farmer profile |
+| PUT | `/api/users/profile` | Update the farmer name and phone |
+| GET | `/api/farms` | List the authenticated farmer's farms |
+| GET | `/api/farms/:farmId/crops` | List crops under an owned farm |
+
+Prediction history, disease detection, and analytics endpoints are not currently
+mounted by the backend app. The dashboard identifies those metrics as unavailable
+instead of estimating or generating prediction records.
+
+The following additional REST API endpoints are planned; actual availability depends on implementation.
 
 ### Crop APIs
 
