@@ -1,25 +1,5 @@
 
 const express = require("express");
-
-const router = express.Router();
-
-const {
-  getAllTreatments,
-  getTreatmentById,
-  getTreatmentsByDisease
-} = require("../controllers/treatment.controller");
-
-
-router.get("/", getAllTreatments);
-
-
-router.get("/:id", getTreatmentById);
-
-
-router.get("/disease/:diseaseId", getTreatmentsByDisease);
-
-const express = require("express");
-
 const router = express.Router();
 
 const {
@@ -48,8 +28,5 @@ router.put("/:id", updateTreatment);
 
 
 router.delete("/:id", deleteTreatment);
-
-module.exports = router;
-
 
 module.exports = router;
