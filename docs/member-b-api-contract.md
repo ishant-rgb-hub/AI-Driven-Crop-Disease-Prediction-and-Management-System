@@ -45,23 +45,57 @@ Response 404: `{ error: "Disease not found" }`
 
 ## Predictions
 ### POST /api/predictions
-Content-Type: multipart/form-data
-Fields: `image` (jpg/png, max 5 MB), `cropId` (optional)
+Authentication: `Authorization: Bearer <JWT>`
+Content-Type: `multipart/form-data`
+Fields: `image` (required, jpg/png, max 5 MB), `cropId` (optional positive integer)
 Response 201:
-{ id, imageUrl, confidence, disease: { id, name, cropName }, createdAt }
-Errors: 400 (invalid or missing image), 401 (no token), 502 (AI service down)
+```json
+{
+  "id": 1,
+  "confidence": 0.741,
+  "createdAt": "2026-11-13T07:41:10.542Z",
+  "cropId": null,
+  "image": {
+    "id": 1,
+    "url": "/uploads/<generated-filename>.png",
+    "filename": "leaf.png",
+    "uploadedAt": "2026-11-13T07:41:10.542Z"
+  },
+  "disease": {
+    "id": 1,
+    "name": "Tomato___Early_blight",
+    "cropName": "Tomato",
+    "displayName": "Early Blight",
+    "description": "...",
+    "symptoms": "...",
+    "isHealthy": false,
+    "createdAt": "2026-11-13T07:41:10.542Z"
+  }
+}
+```
+Errors: 400 (invalid or missing image/cropId), 401 (no token), 404 (crop not found), 502 (AI service down or unknown label).
 
 ### GET /api/predictions
-Response 200: list of the current user's predictions, newest first.
+Authentication: `Authorization: Bearer <JWT>`
+Response 200: array of the current user's predictions, newest first, using the POST response shape.
 
 ### GET /api/predictions/:id
-Response 200: single prediction with disease details.
-Response 403/404 if it is not the user's or does not exist.
+Authentication: `Authorization: Bearer <JWT>`
+Response 200: single prediction using the POST response shape.
+Response 400 for a non-integer id. Response 404 `{ "error": "Prediction not found" }` if it does not exist or belongs to another user.
 
 ## AI service (internal)
-POST http://localhost:8000/predict (multipart: `image`)
-Response: `{ "label": "Tomato___Late_blight", "confidence": 0.93 }`
+The Node AI service calls the optional Python ML service at `ML_SERVICE_URL/predict`
+with the saved image. The Python service returns
+`{ "label": "Tomato___Late_blight", "confidence": 0.93 }`.
 `label` must match `Disease.name` in the database seed.
+
+The repository does not include a model binary. The Python service requires a
+verified model and label map under `ml-service/models/` and `ml-service/labels/`;
+see [ml-service/README.md](../ml-service/README.md). Until those files are
+installed, development uses the deterministic mock predictor when the ML service
+is not reachable. Set `ML_MOCK_FALLBACK=false` to disable that behavior; fallback
+is disabled in production.
 
 ## Models owned by Member B
 Disease, CropImage, Prediction (schema changes go through Member A).
