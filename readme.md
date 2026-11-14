@@ -1,452 +1,357 @@
-# 🌱 AI-Driven Crop Disease Prediction and Management System
+# AI-Driven Crop Disease Prediction and Management System
 
-An intelligent agricultural platform that uses Artificial Intelligence and Machine Learning to identify crop diseases, predict potential infections, and provide farmers with suitable treatment, prevention, and management recommendations.
+A collaborative agricultural platform intended to help farmers identify crop
+disease concerns, review disease-management information, and organize farm,
+crop, and field records. This repository contains the Express/Prisma backend
+and team-developed disease and treatment modules. The APIs documented below
+reflect the implementation currently mounted by `backend/src/app.js`; planned
+or unmounted endpoints are not presented as working features.
 
----
+## Project objectives
 
-## 📌 About the Project
+- Support early crop-disease identification through the project's AI module.
+- Make disease, treatment, and prevention information easier to access.
+- Let authenticated farmers maintain their profile, farms, crops, and fields.
+- Keep each farm record and its related records scoped to its owner.
+- Provide a foundation for prediction history and future crop-health tools.
 
-The AI-Driven Crop Disease Prediction and Management System aims to help farmers detect crop diseases at an early stage using AI-powered image analysis.
+## Technology stack
 
-Farmers can upload images of crop leaves, receive disease predictions, explore treatment options, access preventive measures, and make better agricultural decisions.
-
-The platform combines modern web technologies, database management, and AI-based disease prediction to support smarter and more sustainable farming.
-
-## 🎯 Project Objectives
-
-- Detect crop diseases using AI and image processing.
-- Provide early disease identification.
-- Recommend suitable disease management practices.
-- Provide treatment and prevention information.
-- Maintain prediction history.
-- Collect feedback to improve prediction quality.
-- Support farmers with accessible agricultural information.
-
----
-
-## ✨ Key Features
-
-### 1. AI Crop Disease Detection
-- Upload crop leaf images.
-- Analyze images using an AI/ML model.
-- Identify possible crop diseases.
-- Display prediction results and confidence scores when supported by the model.
-
-### 2. Treatment Management
-- Display disease-specific treatment information.
-- Provide treatment instructions.
-- Search and filter treatments.
-- Manage treatment records.
-
-### 3. Recommendation System
-- Provide crop-specific recommendations.
-- Display disease management suggestions.
-- Help farmers choose appropriate actions.
-
-### 4. Prevention Management
-- Provide preventive agricultural practices.
-- Display crop disease prevention information.
-- Support better crop health management.
-
-### 5. Prediction Feedback
-- Allow users to submit feedback on predictions.
-- Record incorrect or unsatisfactory predictions.
-- Maintain feedback records for future improvements.
-
-### 6. Farmer Dashboard
-- View prediction statistics.
-- Access recent prediction history.
-- Explore treatments and recommendations.
-- Monitor crop disease information.
-
----
-
-## 🛠️ Technology Stack
-
-| Technology | Purpose |
+| Technology | Use |
 |---|---|
-| HTML, CSS, JavaScript | Frontend fundamentals |
-| Frontend framework | To be confirmed from existing frontend |
-| Node.js | Backend runtime |
-| Express.js | REST API development |
+| Node.js and CommonJS JavaScript | Backend runtime and modules |
+| Express 5 | HTTP server, routing, middleware |
 | PostgreSQL | Relational database |
-| Prisma ORM | Database operations and modeling |
-| Python / ML framework | AI model integration, depending on implementation |
-| Postman | API testing |
-| Git & GitHub | Version control and collaboration |
+| Prisma 7 | Schema, generated client, and database access |
+| `pg` / `@prisma/adapter-pg` | PostgreSQL driver adapter |
+| `bcrypt` | Password hashing and verification |
+| `jsonwebtoken` | Signed bearer-token authentication |
+| `node:test` | Backend API tests |
 
----
+Disease prediction/AI is a separate team module; this README does not claim that
+the Member A user, farm, crop, or field APIs perform model inference.
 
-## 🏗️ Project Architecture
-
-The application follows a frontend-backend-database architecture.
-
-```text
-             FARMER / USER
-                   |
-                   |
-             FRONTEND
-                   |
-                   |
-             EXPRESS API
-                   |
-          -------------------
-          |        |        |
-       Routes  Controllers Middleware
-          |        |        |
-          -------------------
-                   |
-                PRISMA
-                   |
-              POSTGRESQL
-                   |
-              DATABASE
-
-          AI / ML PREDICTION
-                   |
-             Disease Results
-```
-
----
-
-## 📁 Project Folder Structure
+## Backend architecture
 
 ```text
-AI-Driven-Crop-Disease-Prediction-and-Management-System/
-│
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   ├── controllers/
-│   │   ├── middleware/
-│   │   ├── routes/
-│   │   ├── app.js
-│   │   └── server.js
-│   │
-│   ├── prisma/
-│   │   └── schema.prisma
-│   │
-│   ├── package.json
-│   └── package-lock.json
-│
-├── frontend/
-│
-├── docs/
-│
-├── .gitignore
-└── README.md
+HTTP request
+  -> backend/src/app.js (Express setup and route mounts)
+  -> route (URL and authentication middleware)
+  -> controller (validation, ownership checks, business logic)
+  -> Prisma client (backend/src/config/database.js)
+  -> PostgreSQL
 ```
 
-Additional files and folders may be added as development progresses.
+| Path | Responsibility |
+|---|---|
+| `backend/src/server.js` | Starts the HTTP server using `PORT` or 3000 |
+| `backend/src/app.js` | JSON parser, route mounts, health response, error handler |
+| `backend/src/routes/` | Maps endpoint methods and paths to controllers |
+| `backend/src/controllers/` | Authentication, profile, farm, crop, and field operations |
+| `backend/src/middleware/auth.middleware.js` | Validates bearer JWT and sets `req.user.id` |
+| `backend/src/middleware/error.middleware.js` | Formats unhandled and server errors |
+| `backend/src/utils/validation.js` | Request validation and safe user serialization |
+| `backend/prisma/schema.prisma` | Database models, fields, and relations |
+| `backend/prisma.config.ts` | Prisma schema, migrations path, and datasource URL |
+| `backend/test/api.test.js` | Node test-runner API and validation tests |
 
----
+Mounted route prefixes include `/api/auth`, `/api/users`, `/api/farms`,
+`/api/crops`, `/api/fields`, `/api/diseases`, and `/api/treatments`.
 
-## 👨‍💻 Team Responsibilities
+## Data models and relationships
 
-The project is developed collaboratively, with different members handling different modules.
+- **User** stores a farmer's name, unique email, password hash, optional phone,
+  and timestamps. One user can own many farms, crop images, and predictions.
+- **Farm** stores its name, location, total area, soil and irrigation types,
+  and an owning `userId`. A farm has many crops and fields.
+- **Crop** belongs to a farm and stores a name, optional variety, planting and
+  expected harvest dates, and growth stage. Its Prisma property `cropName` maps
+  to the database column `name`.
+- **Field** belongs to a farm and stores its name, area, and optional soil and
+  irrigation information.
+- **Disease**, **CropImage**, **Prediction**, **Treatment**, **Prevention**,
+  **Recommendation**, and **PredictionFeedback** are also represented in the
+  shared Prisma schema. Their presence in the schema does not imply that every
+  related API is mounted or implemented by this backend branch.
 
-### Member C – Backend Development
+Farm deletion cascades to its crops and fields; user deletion cascades to farms.
+Crop and field queries verify ownership through their parent farm.
 
-Member C is responsible for:
+## Authentication and authorization
 
-**1. Treatment Module**
-- Treatment CRUD APIs.
-- Disease-specific treatment information.
-- Database integration.
+Registration and login are public. After a successful login, send the returned
+JWT on protected requests:
 
-**2. Recommendation Module**
-- Recommendation APIs.
-- Crop and disease-based filtering.
-- Recommendation management.
-
-**3. Prevention Module**
-- Prevention APIs.
-- Preventive agricultural practices.
-- Prevention record management.
-
-**4. PredictionFeedback Module**
-- Feedback submission APIs.
-- Feedback retrieval.
-- Prediction feedback database integration.
-
-**5. Backend Integration**
-- Express routes and controllers.
-- Prisma ORM integration.
-- PostgreSQL database operations.
-- Postman API testing.
-- GitHub branch management.
-
----
-
-## ⚙️ Installation and Setup
-
-### Prerequisites
-
-Install the following:
-
-- Node.js
-- npm
-- PostgreSQL
-- Git
-- Visual Studio Code
-- Postman
-
-### Step 1: Clone the repository
-
-```bash
-git clone https://github.com/ishant-rgb-hub/AI-Driven-Crop-Disease-Prediction-and-Management-System.git
+```http
+Authorization: Bearer <token>
 ```
 
-### Step 2: Open the project
+The backend signs HS256 tokens containing `userId`; tokens expire after one
+hour. A `JWT_SECRET` of at least 32 characters is required. Passwords are
+hashed with bcrypt (12 rounds); plaintext passwords are never returned.
+Registration requires a password of at least 8 characters and no more than 72
+UTF-8 bytes.
 
-```bash
-cd AI-Driven-Crop-Disease-Prediction-and-Management-System
+Protected profile, farm, crop, and field routes require a valid token. Farm,
+crop, and field operations are restricted to the authenticated owner. Requests
+for another user's records return `404` rather than disclosing whether the
+record exists. Profile email, ID, timestamps, and password fields cannot be
+updated through the profile endpoint.
+
+## API reference
+
+All request bodies are JSON. IDs in paths are positive integers. Unless noted
+otherwise, successful JSON responses use `{"success": true, ...}`. Error
+response shapes are described under [Errors and status codes](#errors-and-status-codes).
+
+### Authentication
+
+| Method | Endpoint | Auth | Description |
+|---|---|---:|---|
+| `POST` | `/api/auth/register` | No | Create an account |
+| `POST` | `/api/auth/login` | No | Verify credentials and return a JWT |
+| `GET` | `/api/auth/me` | Yes | Return the authenticated user's safe profile |
+
+Registration request:
+
+```json
+{
+  "name": "Alex Farmer",
+  "email": "alex@example.com",
+  "password": "a-strong-password",
+  "phone": "+1 555 123 4567"
+}
 ```
 
-### Step 3: Enter the backend folder
+`phone` is optional and may be omitted. On success (`201 Created`):
 
-```bash
-cd backend
+```json
+{
+  "success": true,
+  "user": {
+    "id": 12,
+    "name": "Alex Farmer",
+    "email": "alex@example.com",
+    "phone": "+1 555 123 4567",
+    "createdAt": "2026-01-15T12:00:00.000Z",
+    "updatedAt": "2026-01-15T12:00:00.000Z"
+  }
+}
 ```
 
-### Step 4: Install dependencies
+Login request is `{"email":"alex@example.com","password":"a-strong-password"}`.
+Successful login (`200 OK`) returns `success`, `token`, and `user` with the safe
+fields shown above. The password hash is not included.
 
-```bash
-npm install
-```
+### User profile
 
-### Step 5: Configure environment variables
-
-Create a `.env` file inside the backend folder if your backend configuration requires it.
-
-Example placeholders:
-
-```env
-PORT=3000
-DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/DATABASE_NAME"
-```
-
-Replace placeholders with your local configuration.
-
-**Important:** Never upload your actual `.env` file, passwords, database credentials, or API keys to GitHub.
-
-### Step 6: Configure Prisma
-
-If Prisma is configured in the project:
-
-```bash
-npx prisma generate
-```
-
-After reviewing the existing schema and approved migrations:
-
-```bash
-npx prisma migrate dev
-```
-
-Do not run migrations blindly against a shared or production database.
-
-### Step 7: Start the backend
-
-From the backend folder:
-
-```bash
-node src/server.js
-```
-
-Expected output:
-
-```text
-Server running at http://localhost:3000
-```
-
----
-
-## 🔗 API Documentation
-
-The following are the planned REST API endpoints. Actual endpoint availability depends on implementation.
-
-### Crop APIs
-
-All crop endpoints require authentication. Crops are scoped to a farm owned by the
-authenticated user; `farmId` is taken from the nested route, not the request body.
+Both profile routes require a bearer token. `PUT` accepts one or both editable
+properties; no empty update is accepted.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/farms/:farmId/crops` | Create a crop under an owned farm |
-| GET | `/api/farms/:farmId/crops` | List crops under an owned farm |
-| GET | `/api/crops/:id` | Get an owned crop |
-| PUT | `/api/crops/:id` | Update an owned crop |
-| DELETE | `/api/crops/:id` | Delete an owned crop |
+| `GET` | `/api/users/profile` | Return the authenticated user's profile |
+| `PUT` | `/api/users/profile` | Update `name` and/or `phone` |
 
-Creation requires `cropName`; `cropVariety`, `plantingDate`, `expectedHarvestDate`,
-and `growthStage` are optional. Date values use `YYYY-MM-DD`.
+Example update:
 
-### Field APIs
-
-All field endpoints require authentication. Field operations are limited to farms
-owned by the authenticated user; `farmId` is taken from the nested route.
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/farms/:farmId/fields` | Create a field under an owned farm |
-| GET | `/api/farms/:farmId/fields` | List fields under an owned farm |
-| GET | `/api/fields/:id` | Get an owned field |
-| PUT | `/api/fields/:id` | Update an owned field |
-| DELETE | `/api/fields/:id` | Delete an owned field |
-
-Creation requires `fieldName` and a positive `area`; `soilType` and `irrigationType`
-are optional.
-
-### Treatment APIs
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/treatments` | Get all treatments |
-| GET | `/api/treatments/:id` | Get treatment by ID |
-| POST | `/api/treatments` | Create treatment |
-| PUT | `/api/treatments/:id` | Update treatment |
-| DELETE | `/api/treatments/:id` | Delete treatment |
-
-### Recommendation APIs
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/recommendations` | Get recommendations |
-| GET | `/api/recommendations/:id` | Get recommendation |
-| POST | `/api/recommendations` | Create recommendation |
-| PUT | `/api/recommendations/:id` | Update recommendation |
-| DELETE | `/api/recommendations/:id` | Delete recommendation |
-
-### Prevention APIs
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/prevention` | Get prevention records |
-| GET | `/api/prevention/:id` | Get prevention by ID |
-| POST | `/api/prevention` | Create prevention record |
-| PUT | `/api/prevention/:id` | Update prevention record |
-| DELETE | `/api/prevention/:id` | Delete prevention record |
-
-### Prediction Feedback APIs
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/feedback` | Submit feedback |
-| GET | `/api/feedback` | Get feedback records |
-| GET | `/api/feedback/:id` | Get feedback by ID |
-
----
-
-## 🗄️ Database
-
-PostgreSQL is used as the relational database, and Prisma ORM manages database operations.
-
-The planned database entities include:
-
-- User
-- Prediction
-- Treatment
-- Recommendation
-- Prevention
-- PredictionFeedback
-
-Relationships and field definitions should follow the actual shared Prisma schema.
-
----
-
-## 🧪 Testing
-
-Postman is used to test backend APIs.
-
-Testing includes:
-
-- GET requests.
-- POST requests.
-- PUT requests.
-- DELETE requests.
-- Request validation.
-- Error handling.
-- Database operations.
-- API response verification.
-
----
-
-## 🔀 GitHub Collaboration
-
-The project uses Git and GitHub for collaborative development.
-
-General workflow:
-
-```bash
-# Check current branch
-git branch
-
-# Get latest remote information
-git fetch origin
-
-# Switch to your feature branch
-git checkout feature/disease-management
-
-# Merge latest main changes
-git merge origin/main
-
-# Stage changes
-git add .
-
-# Commit changes
-git commit -m "Implement Member C backend modules"
-
-# Push your feature branch
-git push origin feature/disease-management
+```json
+{ "name": "Alex Green", "phone": null }
 ```
 
-Create a Pull Request from your feature branch into `main` for review and integration.
+The `200 OK` response is `{"success":true,"user":{...}}` with the safe user
+fields. Phone must be a valid phone string when non-null.
 
-Resolve merge conflicts carefully and preserve other team members' changes.
+### Farm management
 
----
+All farm routes require a bearer token. Creation requires all five listed
+properties. Farm names and soil/irrigation types must be 2–100 characters;
+location must be 2–200 characters; total area must be a positive number.
+`PUT` accepts a partial set of those properties.
 
-## 🚀 Future Scope
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/farms` | Create a farm owned by the current user |
+| `GET` | `/api/farms` | List the current user's farms, newest first |
+| `GET` | `/api/farms/:id` | Get one owned farm |
+| `PUT` | `/api/farms/:id` | Update an owned farm |
+| `DELETE` | `/api/farms/:id` | Delete an owned farm (and its crops/fields) |
 
-- Support additional crops and diseases.
-- Improve prediction accuracy with better training datasets.
-- Add multilingual support for farmers.
-- Introduce weather-based disease risk analysis.
-- Add real-time agricultural alerts.
-- Integrate additional agricultural knowledge sources.
-- Improve mobile accessibility.
+Example create request:
 
----
+```json
+{
+  "farmName": "North Field",
+  "location": "Green Valley",
+  "totalArea": 12.5,
+  "soilType": "Loam",
+  "irrigationType": "Drip"
+}
+```
 
-## 🌾 Expected Impact
+Creation returns `201 Created` and `{"success":true,"farm":{...}}`. Farm
+objects include `id`, the request properties, `userId`, `createdAt`, and
+`updatedAt`. A list response uses `{"success":true,"farms":[...]}`. Delete
+returns `204 No Content`.
 
-The project aims to:
+### Crop management
 
-- Help farmers identify crop diseases earlier.
-- Reduce preventable crop losses.
-- Improve access to agricultural management information.
-- Encourage informed farming decisions.
-- Support sustainable agricultural practices.
+All crop routes require a bearer token. A crop is always associated with a
+farm; create and list routes take `farmId` from the URL, not from the body.
+`cropName` is required on creation (2–100 characters). Optional properties are
+`cropVariety` (up to 100 characters), `growthStage` (up to 50 characters),
+`plantingDate`, and `expectedHarvestDate`. Dates use the valid `YYYY-MM-DD`
+format. Optional values can be cleared to `null` on updates.
 
----
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/farms/:farmId/crops` | Create a crop under an owned farm |
+| `GET` | `/api/farms/:farmId/crops` | List crops under an owned farm |
+| `GET` | `/api/crops/:id` | Get a crop owned through its farm |
+| `PUT` | `/api/crops/:id` | Update an owned crop |
+| `DELETE` | `/api/crops/:id` | Delete an owned crop |
 
-## 👥 Contributors
+Example create request:
 
-**Project:** AI-Driven Crop Disease Prediction and Management System
+```json
+{
+  "cropName": "Tomato",
+  "cropVariety": "Roma",
+  "plantingDate": "2026-03-01",
+  "expectedHarvestDate": "2026-06-15",
+  "growthStage": "flowering"
+}
+```
 
-**Repository:** [GitHub Repository](https://github.com/ishant-rgb-hub/AI-Driven-Crop-Disease-Prediction-and-Management-System)
+Create returns `201 Created` and `{"success":true,"crop":{...}}`; list returns
+`{"success":true,"crops":[...]}`. Crop objects include `id`, the crop
+properties, `farmId`, `createdAt`, and `updatedAt`. Delete returns
+`204 No Content`.
 
-**Development:** Collaborative Team Project
+### Field management
 
----
+All field routes require a bearer token. Create requires a 2–100 character
+`fieldName` and positive `area`. `soilType` and `irrigationType` are optional
+and, when supplied as strings, must be 2–100 characters. `PUT` accepts a
+partial set of these fields.
 
-## 📄 License
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/farms/:farmId/fields` | Create a field under an owned farm |
+| `GET` | `/api/farms/:farmId/fields` | List fields under an owned farm |
+| `GET` | `/api/fields/:id` | Get a field owned through its farm |
+| `PUT` | `/api/fields/:id` | Update an owned field |
+| `DELETE` | `/api/fields/:id` | Delete an owned field |
 
-This project is developed for educational and academic purposes.
+Example create request:
 
-A formal open-source license can be added when selected by the project team.
+```json
+{
+  "fieldName": "East Plot",
+  "area": 2.5,
+  "soilType": "Loam",
+  "irrigationType": "Sprinkler"
+}
+```
 
----
+Create returns `201 Created` and `{"success":true,"field":{...}}`; list returns
+`{"success":true,"fields":[...]}`. Field objects include `id`, the request
+properties, `farmId`, `createdAt`, and `updatedAt`. Delete returns
+`204 No Content`.
 
-**Built with 🌱 for smarter and more sustainable agriculture.**
+### Example authenticated request
+
+```bash
+curl http://localhost:3000/api/farms \
+  -H "Authorization: Bearer <token>"
+```
+
+## Errors and status codes
+
+Validation and authorization middleware errors use
+`{"success":false,"error":"..."}`. Unhandled errors formatted by the global
+error middleware use `{"error":"..."}`; internal server errors are logged on
+the server and returned as the generic message `"Internal server error"`.
+
+| Status | Meaning in this implementation |
+|---:|---|
+| `200` | Successful read, login, or update |
+| `201` | Successful registration or resource creation |
+| `204` | Successful deletion; response has no body |
+| `400` | Invalid request fields, unsupported properties, or invalid path ID |
+| `401` | Invalid login, missing/invalid/expired bearer token |
+| `404` | User/resource not found, including resources not owned by caller |
+| `409` | Email already registered |
+| `500` | Unexpected server/database error or missing required server configuration |
+
+## Environment and local setup
+
+Requirements: Node.js, npm, and a PostgreSQL development database.
+
+1. Clone the repository and enter `backend`:
+
+   ```bash
+   git clone https://github.com/ishant-rgb-hub/AI-Driven-Crop-Disease-Prediction-and-Management-System.git
+   cd AI-Driven-Crop-Disease-Prediction-and-Management-System/backend
+   npm install
+   ```
+
+2. Create a local environment file and set values for your own machine:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Configure:
+
+   ```dotenv
+   DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/crop_disease?schema=public"
+   JWT_SECRET="replace-with-a-random-secret-at-least-32-characters"
+   PORT=3000
+   ```
+
+   `DATABASE_URL` must point to a PostgreSQL database. `JWT_SECRET` must be at
+   least 32 characters. `PORT` is optional and defaults to `3000`. Never commit
+   `.env` or real credentials.
+
+3. Generate the Prisma client and apply the schema to a local development
+   database:
+
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+   The repository currently has no checked-in Prisma migration files.
+   `db push` synchronizes the schema without migration history; use it only
+   against a development database, not a shared or production database.
+
+4. Start the server from `backend`:
+
+   ```bash
+   node src/server.js
+   ```
+
+   The server reports `http://localhost:3000`. `GET /` returns a simple backend
+   health response.
+
+5. Run the existing tests from `backend`:
+
+   ```bash
+   npm test
+   ```
+
+The API tests use the Node test runner and stub Prisma model operations; they
+exercise HTTP behavior without requiring a live PostgreSQL server.
+
+## Git and contribution workflow
+
+The Member A implementation is on `feature/vanshika-day1`. Check the current
+branch and working tree before staging:
+
+```bash
+git status --short --branch
+```
+
+Keep commits focused and push only to your feature branch after review. Do not
+push directly to `main`.
