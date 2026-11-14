@@ -10,7 +10,6 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http:/
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-
 const treatmentRoutes = require("./routes/treatment.routes");
 const diseaseRoutes = require("./routes/disease.routes");
 const imageRoutes = require("./routes/image.routes");
@@ -18,6 +17,12 @@ const predictionRoutes = require("./routes/prediction.routes");
 const authRoutes = require("./routes/auth.routes");
 const profileRoutes = require("./routes/profile.routes");
 const farmRoutes = require("./routes/farm.routes");
+
+const recommendationRoutes =
+  require("./routes/recommendation.routes");
+
+const feedbackRoutes =
+  require("./routes/feedback.routes");
 const errorMiddleware = require("./middleware/error.middleware");
 
 app.use(express.json());
